@@ -382,3 +382,31 @@ describe("wordFormsMatch — odmiana tak, przypadkowe zbliżenia nie", () => {
     });
   }
 });
+
+// Twilio transkrybuje mówiony sufiks budynku ("pięć A") na cyfrę + osobną literę Z ODSTĘPEM ("5 a"),
+// nie jako zwarte "5a" — zaobserwowane na żywej rozmowie 21.09.2026 (zgłoszenie Wiktorii): odpowiedź
+// "5A" na pytanie o Wrocławską 5A zamieniła się w transkrypcji na "5 a" i bot jej nie rozpoznał, mimo
+// że wcześniej poprawnie zawęził wybór do trzech salonów.
+describe("tokenizeForMatch — sufiks budynku rozbity spacją przez Twilio", () => {
+  const CASES = [
+    ["5 a", ["5a"]],
+    ["5a", ["5a"]],
+    ["Wrocławska 5 a", ["wroclawska", "5a"]],
+    // Cyfra bez litery po niej zostaje osobnym tokenem — nie ma czego sklejać.
+    ["Wrocławska 60", ["wroclawska", "60"]],
+    // Sama litera bez poprzedzającej cyfry też zostaje bez zmian.
+    ["salon a", ["salon", "a"]],
+  ];
+
+  for (const [input, expected] of CASES) {
+    test(`"${input}" -> ${JSON.stringify(expected)}`, () => {
+      assert.deepEqual(tokenizeForMatch(input), expected);
+    });
+  }
+
+  test("'5 a' samo w sobie wskazuje pewnie Wrocławską 5A (globalnie unikalny alias)", () => {
+    const { match, candidates } = findLocationMatchDeterministic("5 a");
+    assert.equal(match?.name, "Wrocławska 5A");
+    assert.equal(candidates.length, 0);
+  });
+});

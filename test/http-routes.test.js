@@ -375,6 +375,68 @@ describe("Spóźnienie — zawężanie obszarem, ale bez zbędnych pytań", () =
     assert.match(body, /Nie udało mi się ustalić, do którego salonu jesteś umówiony/i);
     assert.doesNotMatch(body, /przekazuję informację o spóźnieniu do salonu/i);
   });
+
+  // Od Wiktorii, 21.09.2026: "brzmi jak call center". Sprawdzamy tylko treść <Say> (to, co bot
+  // faktycznie wymawia) — atrybut hints w <Gather> dalej zawiera "konsultant" celowo, żeby rozpoznać,
+  // gdy TO KLIENT użyje tego słowa (patrz SPEECH_HINT_TERMS/TRANSFER_KEYWORDS_REGEX), to nie jest to,
+  // co się tu sprawdza.
+  test("bot już nie mówi 'konsultant'", async () => {
+    const { body } = await postVoice("/voice/collect-late?attempt=2", { SpeechResult: "" });
+    const spoken = (body.match(/<Say[^>]*>(.*?)<\/Say>/gs) || []).join(" ");
+    assert.doesNotMatch(spoken, /konsultant/i);
+    assert.match(spoken, /przekazuję sprawę dalej/i);
+  });
+});
+
+// Realny przebieg z produkcji, 21.09.2026 (zgłoszenie Wiktorii przez WhatsApp): bot poprawnie
+// zawęził "Wrocławska" do trzech kandydatów, ale gdy odpowiedziała samym "5A", Twilio przetranskrybowało
+// to jako "5 a" (dwa tokeny) i bot tego nie złapał — wyczerpał próby, zanim w ogóle usłyszał odpowiedź.
+// Naprawa ma dwie części: (1) sklejanie "cyfra + spacja + litera" z powrotem w jeden token
+// (tokenizeForMatch), (2) przenoszenie listy kandydatów między turami, żeby sam numer/litera —
+// bez powtarzania nazwy ulicy — dało się dopasować TYLKO wśród tego, co bot przed chwilą wymienił.
+describe("Spóźnienie — klient odpowiada samym numerem na pytanie bota (21.09.2026)", () => {
+  test("replay zgłoszenia Wiktorii: Wrocławska -> trzej kandydaci -> '5 a' -> potwierdzenie Wrocławskiej 5A", async () => {
+    const callSid = nextCallSid();
+    const fields = { From: "+48600000000", To: "+48123456789", CallSid: callSid };
+
+    const first = await postVoice("/voice/collect-late?attempt=0", { ...fields, SpeechResult: "Wrocławska" });
+    assert.match(first.body, /Mamy tam kilka salonów/);
+    assert.match(first.body, /Wrocławska pięć A/);
+    const actionMatch = first.body.match(/action="([^"]*)"/);
+    assert.ok(actionMatch, "odpowiedź z kandydatami musi zawierać Gather z action");
+    const nextPath = actionMatch[1].replace(/&amp;/g, "&").replace(process.env.BASE_URL, "");
+
+    const second = await postVoice(nextPath, { ...fields, SpeechResult: "5 a" });
+    assert.match(second.body, /Zrozumiałem, że chodzi o salon Wrocławska pięć A\. Czy potwierdzasz/);
+  });
+
+  test("salon bez własnego aliasu liczbowego (Urzędnicza 48) też daje się zawęzić samym numerem", async () => {
+    const callSid = nextCallSid();
+    const fields = { From: "+48600000000", To: "+48123456789", CallSid: callSid };
+
+    const first = await postVoice("/voice/collect-late?attempt=0", { ...fields, SpeechResult: "jestem w centrum" });
+    assert.match(first.body, /Mamy tam kilka salonów/);
+    assert.match(first.body, /Urzędnicza czterdzieści osiem/);
+    const actionMatch = first.body.match(/action="([^"]*)"/);
+    const nextPath = actionMatch[1].replace(/&amp;/g, "&").replace(process.env.BASE_URL, "");
+
+    const second = await postVoice(nextPath, { ...fields, SpeechResult: "czterdzieści osiem" });
+    assert.match(second.body, /Zrozumiałem, że chodzi o salon Urzędnicza czterdzieści osiem\. Czy potwierdzasz/);
+  });
+
+  test("odpowiedź spoza listy kandydatów NIE wymusza żadnego z nich — bot dalej pyta/zawęża normalnie", async () => {
+    const callSid = nextCallSid();
+    const fields = { From: "+48600000000", To: "+48123456789", CallSid: callSid };
+
+    const first = await postVoice("/voice/collect-late?attempt=0", { ...fields, SpeechResult: "Wrocławska" });
+    const actionMatch = first.body.match(/action="([^"]*)"/);
+    const nextPath = actionMatch[1].replace(/&amp;/g, "&").replace(process.env.BASE_URL, "");
+
+    // Klient zmienia zdanie i podaje zupełnie inny, jednoznaczny salon — to ma wygrać, a nie
+    // wymuszone dopasowanie do jednego z trzech wcześniej wymienionych kandydatów.
+    const second = await postVoice(nextPath, { ...fields, SpeechResult: "Komandosów" });
+    assert.match(second.body, /Zrozumiałem, że chodzi o salon Komandosów dwadzieścia jeden\. Czy potwierdzasz/);
+  });
 });
 
 describe("Po odpowiedzi FAQ — pytanie o satysfakcję (ustalenia z 16.09.2026)", () => {

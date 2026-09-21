@@ -742,6 +742,17 @@ router.post("/collect-late", async (req, res) => {
     }
   }
 
+  // Klient odpowiada na WŁASNE pytanie bota ("...albo Wrocławska pięć A. Który dokładnie?") samym
+  // wyróżnikiem — numerem, literą budynku — bez powtarzania nazwy ulicy. Żaden z poziomów wyżej tego
+  // nie złapie: to nie jest globalny alias (patrz komentarz przy encodeCandidateList), więc próbujemy
+  // dopiero tutaj, ograniczeni WYŁĄCZNIE do kandydatów, których bot przed chwilą wymienił.
+  if (!locationMatch && speech && candidates.length === 0 && req.query.candidates) {
+    const carriedCandidates = decodeCandidateList(req.query.candidates);
+    if (carriedCandidates.length > 1) {
+      locationMatch = narrowCandidatesByNumber(tokenizeForMatch(speech), carriedCandidates);
+    }
+  }
+
   if (!locationMatch && speech && attempt < MAX_NO_INPUT_RETRIES) {
     // Mamy kilku kandydatów (np. "na Krowodrzy") — wymieniamy je i prosimy o wybór.
     // Nie mamy żadnego — zawężamy obszarami zamiast prosić o ten sam adres jeszcze raz.
@@ -750,7 +761,12 @@ router.post("/collect-late", async (req, res) => {
     else if (attempt === 0) prompt = LATE_AREA_PROMPT;
     else prompt = LATE_AREA_RETRY_PROMPT;
 
-    addSpeechGather(twiml, `${process.env.BASE_URL}/voice/collect-late?attempt=${attempt + 1}`, prompt);
+    const params = new URLSearchParams({ attempt: String(attempt + 1) });
+    // Lista idzie dalej TYLKO gdy jest czym zawężać — bez tego pusty parametr "candidates=" w URL-u
+    // nie robiłby nic złego, ale i nic dobrego, więc nie ma po co go dodawać.
+    if (candidates.length > 0) params.set("candidates", encodeCandidateList(candidates));
+
+    addSpeechGather(twiml, `${process.env.BASE_URL}/voice/collect-late?${params.toString()}`, prompt);
     return res.type("text/xml").send(twiml.toString());
   }
 
@@ -770,9 +786,11 @@ router.post("/collect-late", async (req, res) => {
       body,
     });
 
+    // "konsultant" USUNIĘTE 21.09.2026 na uwagę Wiktorii z testów na żywo — "brzmi jak call center".
+    // Reszta tras już tego słowa nie używa (patrz respondWithHumanCallbackPromise), to był ostatni ślad.
     finishCallWithFeedbackPrompt(
       twiml,
-      "Nie udało mi się ustalić, do którego salonu jesteś umówiony, ale przekazuję sprawę do konsultanta. Wiktoria oddzwoni najszybciej, jak to możliwe."
+      "Nie udało mi się ustalić, do którego salonu jesteś umówiony, ale przekazuję sprawę dalej. Wiktoria oddzwoni najszybciej, jak to możliwe."
     );
     res.type("text/xml").send(twiml.toString());
 
@@ -1332,8 +1350,27 @@ function foldPolish(text) {
     .replace(/[ąćęłńóśźż]/g, (ch) => POLISH_DIACRITICS[ch]);
 }
 
+// Twilio transkrybuje mówiony sufiks budynku ("pięć A", "trzy A") na cyfrę + osobną literę Z ODSTĘPEM
+// ("5 a"), a nie jako "5a". Zmierzone na żywej rozmowie 21.09.2026 (zgłoszenie Wiktorii): klientka
+// powiedziała "5A" w odpowiedzi na pytanie o Wrocławską 5A, Twilio zwróciło "5 a" jako DWA tokeny,
+// więc nic nie pasowało do aliasu "5a" (jeden token) w konfiguracji — bot zgubił odpowiedź mimo że
+// była jednoznaczna. Sklejamy taką parę z powrotem w jeden token, zanim cokolwiek porównamy.
+function mergeDigitLetterSuffixes(tokens) {
+  const merged = [];
+  for (let i = 0; i < tokens.length; i += 1) {
+    const next = tokens[i + 1];
+    if (/^[0-9]+$/.test(tokens[i]) && next && /^[a-z]$/.test(next)) {
+      merged.push(tokens[i] + next);
+      i += 1;
+    } else {
+      merged.push(tokens[i]);
+    }
+  }
+  return merged;
+}
+
 function tokenizeForMatch(text) {
-  return foldPolish(text).split(/[^a-z0-9]+/).filter(Boolean);
+  return mergeDigitLetterSuffixes(foldPolish(text).split(/[^a-z0-9]+/).filter(Boolean));
 }
 
 // Krótkie słowa muszą zgadzać się DOKŁADNIE — "Lea", "AGH", "M1", "NCK", "5a" nie mają końcówki
@@ -1558,6 +1595,24 @@ function describeLocationOptions(candidates) {
     })
     .join(" albo ");
   return `Mamy tam kilka salonów: ${options}. Który dokładnie?`;
+}
+
+// Przenoszenie listy kandydatów między turami rozmowy — od Krzysztofa, 21.09.2026, po realnym
+// zgłoszeniu Wiktorii: bot wymienił "...albo Wrocławska pięć A", ona odpowiedziała samym "5A", a bot
+// tego nie złapał i wyczerpał próby. Przyczyna: findLocationMatchDeterministic jest bezstanowe —
+// każda tura woła je od nowa, bez pamięci, że przed chwilą zawęziliśmy do konkretnych trzech salonów.
+// Sześć z dziewięciu salonów nie ma NAWET własnego aliasu z gołym numerem (patrz komentarz przy
+// narrowCandidatesByNumber), więc dopisanie na sztywno "60"/"48"/"21" do konfiguracji byłoby
+// niebezpieczne — złapałoby też "zadzwonię za 21 minut". Bezpieczne rozwiązanie: zapytać, tylko czy
+// odpowiedź wskazuje jeden z kandydatów, których bot SAM PRZED CHWILĄ wymienił — nie cała baza.
+function encodeCandidateList(candidates) {
+  return candidates.map((l) => l.name).join("|");
+}
+
+function decodeCandidateList(param) {
+  if (!param) return [];
+  const names = new Set(String(param).split("|").filter(Boolean));
+  return (salonConfig.locations || []).filter((l) => names.has(l.name));
 }
 
 function locationNameForSpeech(locationOrName) {
