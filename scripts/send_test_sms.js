@@ -7,7 +7,7 @@ const twilio = require('twilio');
 const sid = process.env.TWILIO_ACCOUNT_SID;
 const token = process.env.TWILIO_AUTH_TOKEN;
 const from = process.env.TWILIO_FROM;
-const to = process.env.TWILIO_TO || '+48 698 685 251';
+const to = process.env.TWILIO_TO || '+48 666 241 442';
 const body = process.env.TWILIO_TEST_BODY || 'Test SMS z Kruk Barbershop — zgłoszenie spóźnienia (test).';
 
 if (!sid || !token || !from) {

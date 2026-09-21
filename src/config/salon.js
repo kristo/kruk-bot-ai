@@ -266,7 +266,7 @@ const salonConfig = {
     // dzwonić do bota — o to chodzi w tej zmianie). Ale wszystko poniżej, co ma realnie DOTRZEĆ
     // do Wiktorii (SMS, przekierowanie na żywo, fallback), musi wskazywać na NOWY numer — inaczej
     // powiadomienie/połączenie poleci z powrotem do bota, nie do niej.
-    wiktoriaPhone: "+48 880 559 744",
+    wiktoriaPhone: "+48 666 241 442",
     // damianPhone USUNIĘTE 18.09.2026 — od Krzysztofa: "damianPhone to tak naprawdę mój numer,
     // możesz usunąć". +48 698 685 251 to prywatny numer Krzysztofa, wpisany tu tymczasowo przy
     // pierwotnej konfiguracji jako placeholder, nie prawdziwy numer Damiana. Zostawienie go
@@ -283,7 +283,7 @@ const salonConfig = {
     // Fallback, gdy nie uda się rozpoznać konkretnej lokalizacji ze zgłoszenia spóźnienia.
     // Wiktoria zaktualizowana 18.09.2026 z tego samego powodu co wyżej; numer Krzysztofa
     // (dawne "damianPhone") usunięty z tej listy z tego samego powodu co wyżej.
-    defaultSalonGroup: ["+48 880 559 744"],
+    defaultSalonGroup: ["+48 666 241 442"],
 
     // "Grupa salonowa" modelowana jako lista odbiorców dla danej lokalizacji.
     // Numery zdefiniowane dla każdego salonu (format międzynarodowy PL).
@@ -296,14 +296,14 @@ const salonConfig = {
         "+48 504 615 745", // Gabi
         "+48 732 555 762", // Patryk
         "+48 692 341 619", // Ola
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
       ],
       "Urzędnicza 48": [
         "+48 517 721 439", // Patryk
         "+48 692 617 263", // Michał
         "+48 515 964 351", // Kuba
         "+48 698 013 368", // Karolina
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 513 837 454", // Emilia
       ],
       "Dywizjonu 303 31E": [
@@ -314,42 +314,42 @@ const salonConfig = {
         "+48 537 234 332", // Wiktoria (barber)
         "+48 570 002 662", // Rafał
         "+48 721 071 283", // Amelia
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
       ],
       "Kniaźnina 1": [
         "+48 533 632 022", // Szymon
         "+48 505 080 523", // Marta
         "+48 511 605 801", // Sajgon
         "+48 536 569 025", // Bartek
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 515 844 987", // Aga
       ],
       "Komandosów 21": [
         "+48 575 244 199", // Wiktor
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 515 964 351", // Kuba
       ],
       "Bohaterów Września 1E": [
         "+48 503 463 109", // Maja
         "+48 535 354 339", // Patrycja
         "+48 721 259 910", // Natalia
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 535 739 740", // Wiktoria (barber)
       ],
       "Prądnicka 77": [
         "+48 697 171 567", // Daga
         "+48 732 924 082", // Paweł
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 515 964 351", // Kuba
       ],
       "Wrocławska 5A": [
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 796 262 803", // Piotr
       ],
       "Niepodległości 3A": [
         "+48 516 473 388", // Tomek
         "+48 786 945 590", // Gabrysia
-        "+48 794 750 901", // Wiki (Wiktoria)
+        "+48 666 241 442", // Wiki (Wiktoria)
         "+48 533 251 670", // Monika
       ],
     },
