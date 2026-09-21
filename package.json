@@ -1,0 +1,21 @@
+{
+  "name": "kruk-bot-ai",
+  "version": "1.0.0",
+  "description": "Telefoniczny bot FAQ dla salonu barberskiego — Twilio + OpenAI",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "NODE_ENV=development node index.js",
+    "test": "NODE_ENV=development node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "openai": "^6.39.0",
+    "twilio": "^6.0.2"
+  }
+}

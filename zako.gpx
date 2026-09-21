@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Copilot" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Widokowa pętla 60 km – Zakopane → Gliczarów → Brzegi → Dzianisz</name>
+    <trkseg>
+
+      <!-- Start: Radisson Blu Zakopane -->
+      <trkpt lat="49.29185" lon="19.96355"></trkpt>
+
+      <!-- Poronin -->
+      <trkpt lat="49.30720" lon="19.99940"></trkpt>
+      <trkpt lat="49.31510" lon="20.01620"></trkpt>
+
+      <!-- Gliczarów Górny (podjazd + panorama) -->
+      <trkpt lat="49.33810" lon="20.05990"></trkpt>
+      <trkpt lat="49.34140" lon="20.07110"></trkpt>
+
+      <!-- Bukowina Tatrzańska -->
+      <trkpt lat="49.30410" lon="20.10290"></trkpt>
+      <trkpt lat="49.30840" lon="20.10640"></trkpt>
+
+      <!-- Brzegi -->
+      <trkpt lat="49.29010" lon="20.09580"></trkpt>
+
+      <!-- Małe Ciche -->
+      <trkpt lat="49.30090" lon="20.06010"></trkpt>
+
+      <!-- Ząb -->
+      <trkpt lat="49.31740" lon="19.96390"></trkpt>
+
+      <!-- Dzianisz -->
+      <trkpt lat="49.33420" lon="19.90410"></trkpt>
+      <trkpt lat="49.32710" lon="19.88940"></trkpt>
+
+      <!-- Kościelisko -->
+      <trkpt lat="49.29940" lon="19.90890"></trkpt>
+
+      <!-- Powrót do Zakopanego -->
+      <trkpt lat="49.29340" lon="19.96040"></trkpt>
+
+      <!-- Meta: Radisson Blu -->
+      <trkpt lat="49.29185" lon="19.96355"></trkpt>
+
+    </trkseg>
+  </trk>
+</gpx>
