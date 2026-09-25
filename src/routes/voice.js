@@ -1029,6 +1029,19 @@ router.post("/feedback", async (req, res) => {
     return res.type("text/xml").send(twiml.toString());
   }
 
+  // FEEDBACK_PROMPT to zachęta ("jeśli masz jakieś uwagi... powiedz je teraz"), nie pytanie
+  // zamknięte — świadomie NIE używamy tu isDeclinedAnswer/CLOSED_QUESTION_DECLINE_REGEX, bo ten
+  // wzorzec łapie KAŻDE "nie" na początku wypowiedzi, a realna uwaga równie dobrze może zaczynać
+  // się od "nie" ("Nie zrozumiałeś mnie za pierwszym razem") — to trzeba przekazać dalej, nie
+  // wyciszyć. Sam GENERAL_DECLINE_REGEX łapie węziej: tylko wyraźne odmowy w stylu "nie, dziękuję".
+  // Bez tej bramki taka odmowa trafiała do zespołu jako [UWAGA O BOCIE] razem z fałszywym
+  // "przekazuję Twoją uwagę dalej". Zaobserwowane na żywej rozmowie pierwszego dnia produkcji,
+  // 22.09.2026.
+  if (speech && GENERAL_DECLINE_REGEX.test(speech.toLowerCase())) {
+    finishCall(twiml);
+    return res.type("text/xml").send(twiml.toString());
+  }
+
   if (speech) {
     const internalPromise = notifyInternalRecipients({
       keyBase: `${callSid}-feedback`,

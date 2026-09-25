@@ -1,0 +1,664 @@
+<title>Kruk AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340..600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #F3F5F6;
+    --surface: #FFFFFF;
+    --surface-raised: #FFFFFF;
+    --text: #14151A;
+    --text-muted: #565B66;
+    --border: #E1E4EA;
+    --accent: #1F6B74;
+    --accent-contrast: #FFFFFF;
+    --accent-soft: #DCEEF0;
+    --gold: #9C6D26;
+    --gold-soft: #F5E6C8;
+    --shadow: 0 1px 2px rgba(20, 21, 26, 0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121319;
+      --surface: #1B1D25;
+      --surface-raised: #21232D;
+      --text: #F1F1EE;
+      --text-muted: #9BA0AC;
+      --border: #2A2D38;
+      --accent: #4FC2CC;
+      --accent-contrast: #0B1416;
+      --accent-soft: #1D3A3E;
+      --gold: #E8B959;
+      --gold-soft: #3A2E14;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121319;
+    --surface: #1B1D25;
+    --surface-raised: #21232D;
+    --text: #F1F1EE;
+    --text-muted: #9BA0AC;
+    --border: #2A2D38;
+    --accent: #4FC2CC;
+    --accent-contrast: #0B1416;
+    --accent-soft: #1D3A3E;
+    --gold: #E8B959;
+    --gold-soft: #3A2E14;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-inline: 24px;
+  }
+  h1, h2, h3 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; margin: 0; }
+  p { margin: 0; }
+  a { color: inherit; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---------- nav ---------- */
+  header.nav {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Fraunces", serif; font-weight: 600; font-size: 1.15rem; letter-spacing: 0.01em; }
+  .brand svg { flex: none; }
+  .nav-links { display: flex; align-items: center; gap: 28px; font-size: 0.92rem; color: var(--text-muted); }
+  .nav-links a:hover { color: var(--text); }
+  @media (max-width: 720px) { .nav-links a.hide-mobile { display: none; } }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-accent { background: var(--accent); color: var(--accent-contrast); }
+  .btn-accent:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { border-color: var(--text-muted); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    padding-block: 64px 88px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 880px) { .hero { grid-template-columns: 1fr; padding-block: 40px 56px; } }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  .hero h1 {
+    font-size: clamp(2.3rem, 4.6vw, 3.4rem);
+    font-weight: 480;
+    line-height: 1.06;
+    letter-spacing: -0.01em;
+  }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero-sub {
+    margin-top: 20px;
+    max-width: 46ch;
+    font-size: 1.08rem;
+    color: var(--text-muted);
+  }
+  .hero-cta { display: flex; gap: 12px; margin-top: 32px; flex-wrap: wrap; }
+
+  .hero-stats {
+    margin-top: 40px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .stat .num { font-family: "IBM Plex Mono", monospace; font-size: 1.4rem; font-weight: 600; }
+  .stat .label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* call mockup */
+  .call-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .call-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .call-dot { width: 8px; height: 8px; border-radius: 50%; background: #43A047; flex: none; }
+  .call-body { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .bubble { max-width: 84%; padding: 10px 13px; border-radius: 12px; font-size: 0.92rem; line-height: 1.42; }
+  .bubble-client { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+  .bubble-bot { align-self: flex-end; background: var(--accent-soft); border-bottom-right-radius: 3px; }
+  .bubble-tag { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 3px; }
+  .call-card-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* ---------- section shell ---------- */
+  section { padding-block: 64px; border-top: 1px solid var(--border); }
+  .section-head { max-width: 62ch; margin-bottom: 40px; }
+  .section-head .eyebrow { margin-bottom: 14px; }
+  .section-head h2 { font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 460; }
+  .section-head p { margin-top: 14px; color: var(--text-muted); font-size: 1.02rem; }
+
+  /* ---------- flow steps ---------- */
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: step; }
+  @media (max-width: 880px) { .flow { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .flow { grid-template-columns: 1fr; } }
+  .flow-step { position: relative; padding-top: 6px; }
+  .flow-step .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 10px;
+  }
+  .flow-step h3 { font-size: 1.05rem; font-weight: 600; font-family: "IBM Plex Sans", sans-serif; }
+  .flow-step p { margin-top: 8px; font-size: 0.92rem; color: var(--text-muted); }
+
+  /* ---------- feature grid ---------- */
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 880px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .grid-3 { grid-template-columns: 1fr; } }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .feature-card h3 { font-size: 1rem; font-weight: 600; font-family: "IBM Plex Sans", sans-serif; }
+  .feature-card p { margin-top: 8px; font-size: 0.9rem; color: var(--text-muted); }
+  .feature-icon { color: var(--accent); margin-bottom: 14px; }
+
+  /* ---------- panel showcase ---------- */
+  .panel-showcase {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 44px;
+    align-items: center;
+  }
+  @media (max-width: 880px) { .panel-showcase { grid-template-columns: 1fr; } }
+  .panel-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+  .panel-list li { display: flex; gap: 12px; align-items: flex-start; }
+  .panel-list .tick { flex: none; margin-top: 3px; color: var(--accent); }
+  .panel-list strong { display: block; font-size: 0.96rem; }
+  .panel-list span { display: block; font-size: 0.88rem; color: var(--text-muted); margin-top: 2px; }
+
+  .browser-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface-raised);
+    box-shadow: var(--shadow);
+  }
+  .browser-bar { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  .browser-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .browser-url {
+    margin-left: 8px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-radius: 5px;
+    padding: 4px 10px;
+    flex: 1;
+  }
+  table.calls { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  table.calls th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.calls td { padding: 11px 16px; border-bottom: 1px solid var(--border); }
+  table.calls tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 100px; font-size: 0.72rem; font-weight: 600; }
+  .pill-booking { background: var(--accent-soft); color: var(--accent); }
+  .pill-late { background: var(--gold-soft); color: var(--gold); }
+
+  /* ---------- customization ---------- */
+  .custom-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  @media (max-width: 880px) { .custom-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .custom-grid { grid-template-columns: 1fr; } }
+  .custom-cell { background: var(--surface); padding: 22px; }
+  .custom-cell h3 { font-size: 0.92rem; font-weight: 600; font-family: "IBM Plex Sans", sans-serif; }
+  .custom-cell p { margin-top: 8px; font-size: 0.86rem; color: var(--text-muted); }
+
+  /* ---------- pricing ---------- */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; }
+  @media (max-width: 880px) { .pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin-inline: auto; } }
+  .plan {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+  }
+  .plan.featured {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 12px 32px -16px color-mix(in srgb, var(--accent) 50%, transparent);
+    transform: translateY(-6px);
+  }
+  @media (max-width: 880px) { .plan.featured { transform: none; } }
+  .plan-badge {
+    align-self: flex-start;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+  }
+  .plan h3 { font-size: 1.05rem; font-weight: 600; font-family: "IBM Plex Sans", sans-serif; }
+  .plan .plan-desc { font-size: 0.88rem; color: var(--text-muted); margin-top: 6px; min-height: 2.6em; }
+  .plan .price { margin-top: 20px; display: flex; align-items: baseline; gap: 6px; }
+  .plan .price .amount { font-family: "IBM Plex Mono", monospace; font-size: 2.1rem; font-weight: 600; }
+  .plan .price .unit { font-size: 0.86rem; color: var(--text-muted); }
+  .plan .price-note { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+  .plan-features { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 11px; flex: 1; }
+  .plan-features li { display: flex; gap: 9px; font-size: 0.87rem; align-items: flex-start; }
+  .plan-features .tick { flex: none; margin-top: 3px; color: var(--accent); }
+  .plan .btn { margin-top: 24px; justify-content: center; }
+  .pricing-foot { margin-top: 28px; font-size: 0.82rem; color: var(--text-muted); text-align: center; }
+
+  /* ---------- case study ---------- */
+  .case {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  @media (max-width: 700px) { .case { flex-direction: column; align-items: flex-start; } }
+  .case-quote { font-family: "Fraunces", serif; font-size: 1.25rem; font-weight: 440; line-height: 1.32; max-width: 52ch; }
+  .case-meta { flex: none; font-size: 0.86rem; color: var(--text-muted); }
+  .case-meta strong { display: block; color: var(--text); font-size: 0.95rem; }
+
+  /* ---------- footer cta ---------- */
+  .cta-band {
+    text-align: center;
+    padding-block: 72px;
+  }
+  .cta-band h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); font-weight: 460; max-width: 22ch; margin-inline: auto; }
+  .cta-band p { margin-top: 14px; color: var(--text-muted); }
+  .cta-band .hero-cta { justify-content: center; margin-top: 28px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-block: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .rise { animation: rise 0.6s ease both; }
+    .rise-delay { animation-delay: 0.12s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+
+<header class="nav">
+  <div class="wrap nav-row">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 15C5 9 9.5 5 15.5 5c1.8 0 3 .6 3 1.8 0 1.3-1.4 1.9-3 2.2l-2.4.5 4.7 2.2c1.3.6 2.2 1.3 2.2 2.4 0 1.4-1.6 2.1-3.4 1.7l-3-.7 1.6 3.3c.5 1-.1 2.1-1.3 2.1-.7 0-1.2-.4-1.6-1.1L10.6 15l-2.9 1.8c-1 .6-2.2.3-2.6-.7-.3-.8 0-1.6.9-2.1l2.6-1.5L3 15Z" fill="currentColor"/></svg>
+      <span>Kruk AI</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#jak-to-dziala" class="hide-mobile">Jak to działa</a>
+      <a href="#panel" class="hide-mobile">Panel</a>
+      <a href="#cennik">Cennik</a>
+      <a href="#kontakt" class="btn btn-accent">Umów demo</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero" style="border-top:none;">
+    <div class="rise">
+      <span class="eyebrow">Recepcja telefoniczna AI dla salonów</span>
+      <h1>Telefon dzwoni.<br>Zawsze <em>ktoś</em> odbiera.</h1>
+      <p class="hero-sub">Kruk AI odpowiada na telefony Twojego salonu po polsku, 24 godziny na dobę — umawia wizyty, zbiera zgłoszenia spóźnień i odpowiada na pytania klientów. Ty widzisz wszystko w jednym panelu w przeglądarce.</p>
+      <div class="hero-cta">
+        <a href="#kontakt" class="btn btn-accent">Umów demo</a>
+        <a href="#cennik" class="btn btn-ghost">Zobacz cennik</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="num">24/7</span><span class="label">bez przerw obiadowych</span></div>
+        <div class="stat"><span class="num mono">&lt;2s</span><span class="label">do pierwszej odpowiedzi</span></div>
+        <div class="stat"><span class="num mono">100%</span><span class="label">rozmów w panelu online</span></div>
+      </div>
+    </div>
+
+    <div class="call-card rise rise-delay">
+      <div class="call-card-head">
+        <span class="call-dot"></span>
+        Połączenie przychodzące · Kruk Barbershop, Wrocławska 60
+      </div>
+      <div class="call-body">
+        <div class="bubble bubble-client">
+          <span class="bubble-tag">Klient</span>
+          Dzień dobry, chciałbym się umówić na jutro rano.
+        </div>
+        <div class="bubble bubble-bot">
+          <span class="bubble-tag">Kruk AI</span>
+          Jasne! Wysyłam SMS-em link do rezerwacji online — może Pan wybrać dogodną godzinę.
+        </div>
+        <div class="bubble bubble-client">
+          <span class="bubble-tag">Klient</span>
+          Super, dziękuję.
+        </div>
+        <div class="bubble bubble-bot">
+          <span class="bubble-tag">Kruk AI</span>
+          Nie ma za co. Miłego dnia!
+        </div>
+      </div>
+      <div class="call-card-foot">
+        Zapisano w panelu → <span class="mono">/admin/calls</span>, wysłano SMS z linkiem Booksy
+      </div>
+    </div>
+  </section>
+</div>
+
+<section id="jak-to-dziala">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Jak to działa</span>
+      <h2>Od dzwonka do zapisu w kalendarzu — bez Twojego udziału</h2>
+      <p>Kruk AI rozumie polską mowę i intencję rozmówcy, a każdą rozmowę kieruje tam, gdzie trzeba — do rezerwacji, do zespołu albo do gotowej odpowiedzi.</p>
+    </div>
+    <div class="flow">
+      <div class="flow-step">
+        <span class="n mono">01</span>
+        <h3>Klient dzwoni</h3>
+        <p>Na dotychczasowy numer salonu — klient nie zauważa żadnej zmiany.</p>
+      </div>
+      <div class="flow-step">
+        <span class="n mono">02</span>
+        <h3>AI rozpoznaje sprawę</h3>
+        <p>Zapis wizyty, spóźnienie, pytanie ogólne czy coś, co wymaga człowieka.</p>
+      </div>
+      <div class="flow-step">
+        <span class="n mono">03</span>
+        <h3>Bot działa od razu</h3>
+        <p>Wysyła SMS z linkiem do rezerwacji, odpowiada na FAQ albo zgłasza zespołowi.</p>
+      </div>
+      <div class="flow-step">
+        <span class="n mono">04</span>
+        <h3>Ty widzisz wszystko</h3>
+        <p>Transkrypt, SMS-y i zgłoszenia do oddzwonienia — w panelu, bez grzebania w nagraniach.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Co robi za Ciebie</span>
+      <h2>Cztery sprawy, które dziś odrywają Cię od klienta przy fotelu</h2>
+    </div>
+    <div class="grid-3">
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 13c1-6 5-9 10-9M15 4l3 1-1 3"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M8 21v-3M16 21v-3"/></svg></div>
+        <h3>Umawianie wizyt</h3>
+        <p>Bot wysyła klientowi SMS-em link do rezerwacji w Booksy, dopasowany do salonu, o którym mówił.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Zgłoszenia spóźnień</h3>
+        <p>Bot pyta o salon, potwierdza i od razu powiadamia właściwy zespół — nie Ciebie osobiście.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 18h.01M9 9a3 3 0 1 1 4 2.8c-.8.4-1 .9-1 1.7"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <h3>Pytania i FAQ</h3>
+        <p>Cennik, godziny, lokalizacje, parking — odpowiada od razu, bez przekierowywania rozmowy.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 21c0-3.9-3.6-7-8-7s-8 3.1-8 7"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <h3>Eskalacja do człowieka</h3>
+        <p>Gdy klient wyraźnie prosi o kontakt — sprawa trafia do zespołu z obietnicą oddzwonienia, nie ginie.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M8 13h3"/></svg></div>
+        <h3>Powiadomienia zespołu</h3>
+        <p>SMS lub WhatsApp trafia dokładnie tam, gdzie trzeba — do konkretnej lokalizacji, nie do wszystkich naraz.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <h3>Uwagi od klientów</h3>
+        <p>Na koniec rozmowy bot pyta, czy coś poprawić — realne uwagi trafiają wprost do Ciebie.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="panel">
+  <div class="wrap">
+    <div class="panel-showcase">
+      <div>
+        <span class="eyebrow">Interfejs webowy</span>
+        <h2 style="font-size:clamp(1.7rem,3vw,2.2rem); font-weight:460; margin-bottom:24px;">Cała historia rozmów — w przeglądarce, nie w logach serwera</h2>
+        <ul class="panel-list">
+          <li>
+            <svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg>
+            <div><strong>Transkrypty rozmów</strong><span>Każda tura rozmowy zapisana i przeszukiwalna, bez odsłuchiwania nagrań.</span></div>
+          </li>
+          <li>
+            <svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg>
+            <div><strong>Wątki SMS</strong><span>Odpowiadasz klientom prosto z panelu — jedna rozmowa, jeden wątek.</span></div>
+          </li>
+          <li>
+            <svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg>
+            <div><strong>Lista oddzwonień</strong><span>Kto czeka na telefon i od kiedy — odhaczasz, gdy sprawa załatwiona.</span></div>
+          </li>
+          <li>
+            <svg class="tick" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12l5 5L20 6"/></svg>
+            <div><strong>Bez instalacji</strong><span>Jeden link z tokenem dostępu — działa na komputerze i telefonie.</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="browser-card">
+        <div class="browser-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="browser-url">kruk-ai.pl/admin/calls</span>
+        </div>
+        <table class="calls">
+          <thead>
+            <tr><th>Klient</th><th>Godzina</th><th>Sprawa</th><th>Tury</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">+48 512 •• 493</td><td class="mono">14:19</td><td><span class="pill pill-booking">Zapis</span></td><td class="mono">4</td></tr>
+            <tr><td class="mono">+48 799 •• 386</td><td class="mono">08:26</td><td><span class="pill pill-late">Spóźnienie</span></td><td class="mono">3</td></tr>
+            <tr><td class="mono">+48 515 •• 365</td><td class="mono">18:03</td><td><span class="pill pill-booking">Inne</span></td><td class="mono">4</td></tr>
+            <tr><td class="mono">+48 692 •• 019</td><td class="mono">14:19</td><td><span class="pill pill-booking">Zapis</span></td><td class="mono">5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Dostosowany do Ciebie</span>
+      <h2>To nie jeden bot dla wszystkich salonów</h2>
+      <p>Każde wdrożenie Kruk AI jest skrojone pod Twoją sieć — od liczby lokalizacji po ton głosu.</p>
+    </div>
+    <div class="custom-grid">
+      <div class="custom-cell">
+        <h3>Lokalizacje i punkty orientacyjne</h3>
+        <p>Każdy salon ma własny adres, dzielnicę i lokalne punkty orientacyjne, po których klienci go rozpoznają.</p>
+      </div>
+      <div class="custom-cell">
+        <h3>Głos i tempo mówienia</h3>
+        <p>Dobieramy głos, język i prędkość mówienia tak, by brzmiał naturalnie dla Twoich klientów.</p>
+      </div>
+      <div class="custom-cell">
+        <h3>Własne FAQ</h3>
+        <p>Cennik, zasady odwołań, parking, akceptowane płatności — odpowiedzi ustawione raz, pod Twój salon.</p>
+      </div>
+      <div class="custom-cell">
+        <h3>Trasy powiadomień</h3>
+        <p>Zgłoszenie ze spóźnieniem trafia do zespołu tej konkretnej lokalizacji — nie do całej sieci naraz.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cennik">
+  <div class="wrap">
+    <div class="section-head" style="max-width:none; text-align:center; margin-inline:auto;">
+      <span class="eyebrow" style="justify-content:center;">Cennik</span>
+      <h2>Plan dopasowany do liczby salonów</h2>
+      <p style="margin-inline:auto;">Bez umów wieloletnich. Wdrożenie w 2–3 tygodnie, licząc od przekazania danych o salonie.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="plan">
+        <h3>Starter</h3>
+        <p class="plan-desc">Jeden salon, jeden numer telefonu.</p>
+        <div class="price"><span class="amount mono">249</span><span class="unit">zł / mies. + VAT</span></div>
+        <div class="price-note">plus ok. 0,60 zł za obsłużoną rozmowę</div>
+        <ul class="plan-features">
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>1 lokalizacja</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Zapis wizyt + FAQ</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Panel z historią rozmów</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Powiadomienia SMS do 1 numeru</li>
+        </ul>
+        <a href="#kontakt" class="btn btn-ghost">Wybierz Starter</a>
+      </div>
+
+      <div class="plan featured">
+        <span class="plan-badge">Najczęściej wybierany</span>
+        <h3>Pro</h3>
+        <p class="plan-desc">Sieć do 5 salonów pod jedną marką.</p>
+        <div class="price"><span class="amount mono">699</span><span class="unit">zł / mies. + VAT</span></div>
+        <div class="price-note">plus ok. 0,50 zł za obsłużoną rozmowę</div>
+        <ul class="plan-features">
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Do 5 lokalizacji, osobne FAQ i głos</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Wątki SMS + odpowiadanie z panelu</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Powiadomienia SMS/WhatsApp per lokalizacja</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Priorytetowe wsparcie wdrożeniowe</li>
+        </ul>
+        <a href="#kontakt" class="btn btn-accent">Wybierz Pro</a>
+      </div>
+
+      <div class="plan">
+        <h3>Sieć</h3>
+        <p class="plan-desc">Ponad 5 salonów lub franczyza.</p>
+        <div class="price"><span class="amount mono">Wycena</span><span class="unit">indywidualna</span></div>
+        <div class="price-note">stawka za rozmowę spada wraz ze skalą</div>
+        <ul class="plan-features">
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Nielimitowana liczba lokalizacji</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Dedykowany opiekun wdrożenia</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Integracje: Booksy, własny CRM</li>
+          <li><svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12l5 5L20 6"/></svg>Umowa SLA na czas reakcji</li>
+        </ul>
+        <a href="#kontakt" class="btn btn-ghost">Porozmawiajmy</a>
+      </div>
+    </div>
+    <p class="pricing-foot">Ceny orientacyjne — ostateczna oferta zależy od liczby salonów i integracji. Zero opłaty wdrożeniowej przy podpisaniu na 12 miesięcy.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="case">
+      <div class="case-quote">„Zanim wdrożyliśmy bota, nikt nie wiedział, ile telefonów tak naprawdę tracimy między klientami. Teraz każda rozmowa ma ślad — i każdy salon wie, kto się spóźnia.”</div>
+      <div class="case-meta">
+        <strong>Kruk Barbershop</strong>
+        6 lokalizacji, Kraków<br>pierwsze wdrożenie Kruk AI
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <section class="cta-band" style="border-top:none;">
+    <h2>Gotowy, żeby telefon przestał być problemem?</h2>
+    <p>Pokażemy Ci działającego bota na Twoim numerze w 15 minut — bez zobowiązań.</p>
+    <div class="hero-cta">
+      <a href="#kontakt" id="kontakt" class="btn btn-accent">Umów demo</a>
+      <a href="tel:+48732143591" class="btn btn-ghost">+48 732 143 591</a>
+    </div>
+  </section>
+</div>
+
+<footer class="wrap">
+  <div class="brand" style="font-size:0.95rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 15C5 9 9.5 5 15.5 5c1.8 0 3 .6 3 1.8 0 1.3-1.4 1.9-3 2.2l-2.4.5 4.7 2.2c1.3.6 2.2 1.3 2.2 2.4 0 1.4-1.6 2.1-3.4 1.7l-3-.7 1.6 3.3c.5 1-.1 2.1-1.3 2.1-.7 0-1.2-.4-1.6-1.1L10.6 15l-2.9 1.8c-1 .6-2.2.3-2.6-.7-.3-.8 0-1.6.9-2.1l2.6-1.5L3 15Z" fill="currentColor"/></svg>
+    <span>Kruk AI</span>
+  </div>
+  <span>Zbudowane dla Kruk Barbershop, Kraków — teraz dostępne dla innych salonów.</span>
+</footer>

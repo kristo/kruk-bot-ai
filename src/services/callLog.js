@@ -161,19 +161,53 @@ function logCallTurn({ callSid, route, from, speech }) {
   }
 }
 
+// % i _ mają znaczenie specjalne w LIKE — bez ucieczki szukanie frazy "50%" albo "a_b" dawałoby
+// zaskakujące trafienia. Znak ucieczki "\" ustawiany jawnie w ESCAPE, bo SQLite go nie zakłada.
+function escapeLikeTerm(term) {
+  return term.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
 // Lista rozmów pogrupowana po CallSid, najnowsze pierwsze — do widoku listy w /admin/calls.
-function getRecentCalls(limit = 100) {
+// Opcjonalne `q` szuka po numerze dzwoniącego ORAZ po treści dowolnej tury (np. nazwa ulicy) —
+// od Krzysztofa, 24.09.2026, żeby nie trzeba było przewijać płaskiej listy ręcznie.
+function getRecentCalls(limit = 100, { q } = {}) {
   const database = getDb();
+  if (!q) {
+    return database
+      .prepare(
+        `SELECT call_sid, MIN(created_at) AS started_at, MAX(created_at) AS last_at,
+                COUNT(*) AS turns, MAX(from_number) AS from_number
+         FROM call_turns
+         GROUP BY call_sid
+         ORDER BY started_at DESC
+         LIMIT ?`
+      )
+      .all(limit);
+  }
+
+  const pattern = `%${escapeLikeTerm(q)}%`;
   return database
     .prepare(
       `SELECT call_sid, MIN(created_at) AS started_at, MAX(created_at) AS last_at,
               COUNT(*) AS turns, MAX(from_number) AS from_number
        FROM call_turns
+       WHERE call_sid IN (
+         SELECT DISTINCT call_sid FROM call_turns
+         WHERE from_number LIKE ? ESCAPE '\\' OR speech_result LIKE ? ESCAPE '\\'
+       )
        GROUP BY call_sid
        ORDER BY started_at DESC
        LIMIT ?`
     )
-    .all(limit);
+    .all(pattern, pattern, limit);
+}
+
+// Liczba unikalnych rozmów od danej daty granicznej — do statystyk "dziś" na dashboardzie.
+function countCallsSince(cutoffIso) {
+  const database = getDb();
+  return database
+    .prepare("SELECT COUNT(DISTINCT call_sid) AS count FROM call_turns WHERE created_at >= ?")
+    .get(cutoffIso).count;
 }
 
 // Pełny przebieg jednej rozmowy, w kolejności chronologicznej — do widoku szczegółów.
@@ -182,6 +216,25 @@ function getCallTurns(callSid) {
   return database
     .prepare("SELECT * FROM call_turns WHERE call_sid = ? ORDER BY created_at ASC, id ASC")
     .all(callSid);
+}
+
+// Jednorazowe czyszczenie ruchu testowego/przedwdrożeniowego z /admin/calls i /admin/sms — od
+// Krzysztofa, 24.09.2026. Zwraca liczbę usuniętych wierszy, żeby dało się to potwierdzić przed
+// i po uruchomieniu skryptu (patrz scripts/purge_pre_launch_data.js), zamiast usuwać po cichu.
+function deleteCallTurnsBefore(cutoffIso) {
+  const database = getDb();
+  const result = runWithBusyRetry(() =>
+    database.prepare("DELETE FROM call_turns WHERE created_at < ?").run(cutoffIso)
+  );
+  return result.changes;
+}
+
+function deleteSmsMessagesBefore(cutoffIso) {
+  const database = getDb();
+  const result = runWithBusyRetry(() =>
+    database.prepare("DELETE FROM sms_messages WHERE created_at < ?").run(cutoffIso)
+  );
+  return result.changes;
 }
 
 // Zgłoszenie "Wiktoria oddzwoni" — od Krzysztofa, 14.09.2026 ("widok z transkryptami, ale bez
@@ -221,17 +274,40 @@ function logCallbackRequest({ callSid, category, clientPhone, summary, dedupeKey
 // filtrowaniu w JS limit obcinał najpierw wszystkie zgłoszenia, więc po przekroczeniu limitu
 // stare, wciąż nieodhaczone zgłoszenie po cichu wypadało z widoku — czyli dokładnie to, przed
 // czym ten rejestr ma chronić. Znalezione w przeglądzie 15.09.2026.
-function getCallbackRequests({ includeResolved = true, limit = 500 } = {}) {
+// Opcjonalne `q` (numer klienta albo treść zgłoszenia) idzie do tego samego WHERE co filtr
+// "tylko nieodhaczone" — z tego samego powodu co komentarz wyżej: filtrowanie po pobraniu z
+// LIMIT-em potrafi po cichu zgubić stare, pasujące zgłoszenie.
+function getCallbackRequests({ includeResolved = true, limit = 500, q } = {}) {
   const database = getDb();
-  const where = includeResolved ? "" : "WHERE resolved = 0";
+  const conditions = [];
+  const params = [];
+  if (!includeResolved) conditions.push("resolved = 0");
+  if (q) {
+    conditions.push("(client_phone LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\')");
+    const pattern = `%${escapeLikeTerm(q)}%`;
+    params.push(pattern, pattern);
+  }
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  params.push(limit);
   return database
     .prepare(`SELECT * FROM callback_requests ${where} ORDER BY created_at DESC, id DESC LIMIT ?`)
-    .all(limit);
+    .all(...params);
 }
 
 function countPendingCallbacks() {
   const database = getDb();
   return database.prepare("SELECT COUNT(*) AS count FROM callback_requests WHERE resolved = 0").get().count;
+}
+
+// Rozkład dzisiejszych zgłoszeń po kategorii (ZAPIS/SPÓŹNIENIE/INNE/...) — do dashboardu.
+function getCallbackCategoryCountsSince(cutoffIso) {
+  const database = getDb();
+  return database
+    .prepare(
+      `SELECT category, COUNT(*) AS count FROM callback_requests
+       WHERE created_at >= ? GROUP BY category ORDER BY count DESC`
+    )
+    .all(cutoffIso);
 }
 
 function setCallbackResolved(id, resolved) {
@@ -285,8 +361,11 @@ function getSmsThread(clientPhone, limit = 200) {
 
 // Lista rozmów SMS: po jednym wierszu na numer, z ostatnią wiadomością i liczbą nieprzeczytanych
 // (czyli przychodzących, na które nie poszła jeszcze żadna późniejsza odpowiedź z panelu).
-function getSmsConversations(limit = 100) {
+// Opcjonalne `q` filtruje po numerze — do wyszukiwarki w /admin/sms, od Krzysztofa, 24.09.2026.
+function getSmsConversations(limit = 100, { q } = {}) {
   const database = getDb();
+  const where = q ? "WHERE client_phone LIKE ? ESCAPE '\\'" : "";
+  const params = q ? [`%${escapeLikeTerm(q)}%`, limit] : [limit];
   return database
     .prepare(
       `SELECT client_phone,
@@ -300,11 +379,20 @@ function getSmsConversations(limit = 100) {
                 WHERE m3.client_phone = m1.client_phone
                 ORDER BY m3.created_at DESC, m3.id DESC LIMIT 1) AS last_direction
        FROM sms_messages m1
+       ${where}
        GROUP BY client_phone
        ORDER BY last_at DESC
        LIMIT ?`
     )
-    .all(limit);
+    .all(...params);
+}
+
+// Liczba wszystkich wiadomości (przychodzących i wychodzących) od danej daty — do dashboardu.
+function countSmsMessagesSince(cutoffIso) {
+  const database = getDb();
+  return database
+    .prepare("SELECT COUNT(*) AS count FROM sms_messages WHERE created_at >= ?")
+    .get(cutoffIso).count;
 }
 
 // Ile wątków czeka na odpowiedź — ostatnia wiadomość jest od klienta.
@@ -316,13 +404,18 @@ module.exports = {
   logCallTurn,
   getRecentCalls,
   getCallTurns,
+  countCallsSince,
+  deleteCallTurnsBefore,
+  deleteSmsMessagesBefore,
   logSmsMessage,
   getSmsThread,
   getSmsConversations,
+  countSmsMessagesSince,
   countAwaitingSmsReplies,
   normalizeSmsPhone,
   logCallbackRequest,
   getCallbackRequests,
+  getCallbackCategoryCountsSince,
   countPendingCallbacks,
   setCallbackResolved,
 };

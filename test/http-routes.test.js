@@ -304,6 +304,29 @@ describe("POST /voice/feedback — krótkie potwierdzenie bez treści", () => {
   });
 });
 
+describe("POST /voice/feedback — odmowa zostawienia uwagi", () => {
+  // Zaobserwowane na żywej rozmowie pierwszego dnia produkcji (22.09.2026): "Nie, dziękuję" w
+  // odpowiedzi na zachętę "jeśli masz jakieś uwagi... powiedz je teraz" trafiało do zespołu jako
+  // [UWAGA O BOCIE], razem z fałszywym potwierdzeniem "przekazuję Twoją uwagę dalej".
+  test("'Nie, dziękuję' kończy rozmowę bez fałszywej uwagi ani zgłoszenia", async () => {
+    const { body } = await postVoice("/voice/feedback", { SpeechResult: "Nie, dziękuję." });
+    assert.doesNotMatch(body, /przekazuję Twoją uwagę dalej/);
+    assert.doesNotMatch(body, /Słucham, jakie to uwagi/);
+  });
+
+  test("samo 'Nie' też kończy rozmowę bez zgłoszenia", async () => {
+    const { body } = await postVoice("/voice/feedback", { SpeechResult: "Nie." });
+    assert.doesNotMatch(body, /przekazuję Twoją uwagę dalej/);
+  });
+
+  test("realna uwaga zaczynająca się od 'Nie' nadal trafia do zespołu", async () => {
+    const { body } = await postVoice("/voice/feedback", {
+      SpeechResult: "Nie zrozumiałeś mnie za pierwszym razem, musiałem powtarzać.",
+    });
+    assert.match(body, /przekazuję Twoją uwagę dalej/);
+  });
+});
+
 // Na produkcji (15.09.2026) POST bez treści wywracał weryfikację podpisu Twilio wyjątkiem
 // (Object.keys(undefined) w SDK), więc zamiast 403 wracał TwiML ze statusem 200. Tu wymuszamy
 // prawdziwą weryfikację — bez NODE_ENV=development, które ją w testach omija.

@@ -74,6 +74,21 @@ function getInternalChannel() {
   return (process.env.INTERNAL_NOTIFICATIONS_CHANNEL || "whatsapp").toLowerCase();
 }
 
+// Pilotaż WhatsAppa (24.09.2026): część odbiorców (Krzysztof/Damian/Wiktoria) ma dostawać
+// powiadomienia na WhatsAppie, reszta zespołu zostaje na SMS-ie jak dotychczas —
+// INTERNAL_NOTIFICATIONS_CHANNEL nadal rządzi wszystkimi poza tą listą.
+function getWhatsappPilotRecipients() {
+  return (process.env.WHATSAPP_PILOT_RECIPIENTS || "")
+    .split(",")
+    .map((phone) => normalizePhoneNumber(phone.trim()).replace(/^whatsapp:/, ""))
+    .filter(Boolean);
+}
+
+function getChannelForRecipient(recipient) {
+  const bare = normalizePhoneNumber(recipient).replace(/^whatsapp:/, "");
+  return getWhatsappPilotRecipients().includes(bare) ? "whatsapp" : getInternalChannel();
+}
+
 function normalizePhoneNumber(phone) {
   if (!phone) return phone;
   const prefix = phone.startsWith("whatsapp:") ? "whatsapp:" : "";
@@ -123,11 +138,11 @@ async function notifyInternalRecipients({ keyBase, recipients, twilioCallTo, bod
   );
   if (allRecipients.length === 0) return;
 
-  const channel = getInternalChannel();
-  const fromAddress = getInternalFromAddress(channel, twilioCallTo);
-  if (!fromAddress) return;
-
   const jobs = allRecipients.map((recipient, index) => {
+    const channel = getChannelForRecipient(recipient);
+    const fromAddress = getInternalFromAddress(channel, twilioCallTo);
+    if (!fromAddress) return null;
+
     const key = `${keyBase}-${index}-${recipient}`;
     return sendInternalNotification({
       key,
@@ -147,6 +162,8 @@ module.exports = {
   getLateRecipients,
   isInternalNotificationsEnabled,
   getInternalChannel,
+  getWhatsappPilotRecipients,
+  getChannelForRecipient,
   normalizePhoneNumber,
   asChannelAddress,
   getInternalFromAddress,
