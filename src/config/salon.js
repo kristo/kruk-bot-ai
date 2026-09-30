@@ -310,7 +310,9 @@ const salonConfig = {
         "+48 536 050 506", // Maciek
         "+48 793 262 262", // Marta
         "+48 662 508 503", // Janek
-        "+48 797 310 501", // Andrzej
+        "+48 530 148 045", // Andrzej — poprawiony 30.09.2026 na rzeczywisty numer WhatsApp (stary,
+        // +48 797 310 501, nie był jego WhatsAppem — pierwsze powiadomienie po włączeniu WhatsAppu
+        // dla wszystkich barberów w ogóle do niego nie trafiało)
         "+48 537 234 332", // Wiktoria (barber)
         "+48 570 002 662", // Rafał
         "+48 721 071 283", // Amelia
