@@ -337,6 +337,7 @@ const salonConfig = {
         "+48 721 259 910", // Natalia
         "+48 666 241 442", // Wiki (Wiktoria)
         "+48 535 739 740", // Wiktoria (barber)
+        "+48 609 222 721", // Paulina (Paula) — dopisana 30.09.2026, od Damiana
       ],
       "Prądnicka 77": [
         "+48 697 171 567", // Daga
