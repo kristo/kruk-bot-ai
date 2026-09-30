@@ -70,23 +70,16 @@ function isInternalNotificationsEnabled() {
   );
 }
 
+// 30.09.2026: szablon WhatsApp (patrz sendInternalNotification) został zatwierdzony przez Metę,
+// więc WhatsApp dociera niezawodnie do każdego odbiorcy — nawet bez wcześniejszej sesji (barberzy
+// nigdy nie pisali do bota). To zamyka pilotaż z 24.09.2026 (Krzysztof/Damian/Wiktoria na
+// WhatsAppie, reszta na SMS-ie) i backup SMS z 26.09.2026 (zabezpieczenie na czas zatwierdzania
+// szablonu) — oba były tymczasowe i oba odpadły: na żądanie Krzysztofa cały zespół, łącznie z
+// barberami z każdego salonu (patrz salonWhatsAppGroups w config/salon.js), idzie teraz na
+// WhatsApp jednym kanałem z INTERNAL_NOTIFICATIONS_CHANNEL. SMS wciąż dostępny przez zmianę tej
+// zmiennej — WhatsApp jest tańszy, więc to on jest teraz domyślny.
 function getInternalChannel() {
   return (process.env.INTERNAL_NOTIFICATIONS_CHANNEL || "whatsapp").toLowerCase();
-}
-
-// Pilotaż WhatsAppa (24.09.2026): część odbiorców (Krzysztof/Damian/Wiktoria) ma dostawać
-// powiadomienia na WhatsAppie, reszta zespołu zostaje na SMS-ie jak dotychczas —
-// INTERNAL_NOTIFICATIONS_CHANNEL nadal rządzi wszystkimi poza tą listą.
-function getWhatsappPilotRecipients() {
-  return (process.env.WHATSAPP_PILOT_RECIPIENTS || "")
-    .split(",")
-    .map((phone) => normalizePhoneNumber(phone.trim()).replace(/^whatsapp:/, ""))
-    .filter(Boolean);
-}
-
-function getChannelForRecipient(recipient) {
-  const bare = normalizePhoneNumber(recipient).replace(/^whatsapp:/, "");
-  return getWhatsappPilotRecipients().includes(bare) ? "whatsapp" : getInternalChannel();
 }
 
 function normalizePhoneNumber(phone) {
@@ -121,12 +114,22 @@ function getTestRecipients() {
     .filter(Boolean);
 }
 
-async function sendInternalNotification({ key, to, from, body }) {
+// Szablon WhatsApp (HSM) zatwierdzony przez Metę pozwala dostarczyć wiadomość nawet poza
+// 24h oknem sesji — bez niego freeform WhatsApp do kogoś, kto nie pisał wcześniej do bota,
+// kończy się błędem Twilio 63016 (i tak stracił Damian/Wiktoria 25-26.09.2026, dopóki sami nie
+// napisali na numer bota). Ustawiany dopiero po akceptacji szablonu przez Metę — do tego czasu
+// WhatsApp leci freeform jak dotąd (działa tylko w oknie sesji).
+async function sendInternalNotification({ key, to, from, channel, body }) {
   if (!to || !from || !body) return;
   if (!markMessageSent(key)) return;
 
-  await getTwilioClient().messages.create({ to, from, body });
-  console.log("Internal notification sent", { to, preview: body.slice(0, 120) });
+  const templateSid = channel === "whatsapp" ? process.env.TWILIO_WHATSAPP_TEMPLATE_SID : null;
+  const params = templateSid
+    ? { to, from, contentSid: templateSid, contentVariables: JSON.stringify({ 1: body }) }
+    : { to, from, body };
+
+  await getTwilioClient().messages.create(params);
+  console.log("Internal notification sent", { to, channel, template: Boolean(templateSid), preview: body.slice(0, 120) });
 }
 
 async function notifyInternalRecipients({ keyBase, recipients, twilioCallTo, body }) {
@@ -139,15 +142,16 @@ async function notifyInternalRecipients({ keyBase, recipients, twilioCallTo, bod
   if (allRecipients.length === 0) return;
 
   const jobs = allRecipients.map((recipient, index) => {
-    const channel = getChannelForRecipient(recipient);
+    const channel = getInternalChannel();
     const fromAddress = getInternalFromAddress(channel, twilioCallTo);
     if (!fromAddress) return null;
 
-    const key = `${keyBase}-${index}-${recipient}`;
+    const key = `${keyBase}-${index}-${recipient}-${channel}`;
     return sendInternalNotification({
       key,
       to: asChannelAddress(channel, recipient),
       from: fromAddress,
+      channel,
       body,
     });
   });
@@ -162,8 +166,6 @@ module.exports = {
   getLateRecipients,
   isInternalNotificationsEnabled,
   getInternalChannel,
-  getWhatsappPilotRecipients,
-  getChannelForRecipient,
   normalizePhoneNumber,
   asChannelAddress,
   getInternalFromAddress,
