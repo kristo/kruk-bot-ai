@@ -914,13 +914,38 @@ router.post("/collect-other", async (req, res) => {
   // opisu sprawy (np. reklamacji), a nie jako prośba o przełączenie. Zbieranie tematu przez tę
   // ścieżkę i tak prowadzi do oddzwonienia, więc efekt dla klienta jest zbliżony.
 
-  // Od Krzysztofa, 01.10.2026: zapytany "o co chodzi" po "mam inną sprawę", klient czasem po
-  // prostu zadaje zwykłe pytanie (np. o lokalizację/godziny/cennik) zamiast opisywać zgłoszenie —
-  // a to lądowało tu jako "treść sprawy" i dostawało w odpowiedzi "czy mam przekazać to
-  // Wiktorii?", zamiast normalnej odpowiedzi. Rozpoznajemy to dokładnie tak samo jak w /intent
-  // i /faq (resolveIntent) — i jeśli to faktycznie PYTANIE, odpowiadamy na nie od razu, zamiast
-  // zakładać, że każda wypowiedź tutaj to opis sprawy do przekazania.
+  // Od Krzysztofa, 01.10.2026: zapytany "o co chodzi" po "mam inną sprawę", klient czasem w
+  // drugiej wypowiedzi tak naprawdę ujawnia inną intencję — zwykłe pytanie (lokalizacja/godziny/
+  // cennik), albo poprawia się i wyraźnie prosi o zapis/zgłasza spóźnienie (realny przypadek z
+  // logów, 29.09.2026: "Omówienie wizyty" rozpoznane jako INNE, bo rozpoznawanie mowy zgubiło "u"
+  // z "Umówienie" — regex ZAPIS tego nie złapał — a w drugiej turze klient powtórzył poprawnie
+  // "Umówienie wizyty", które i tak lądowało jako "treść zgłoszenia" do potwierdzenia zamiast
+  // normalnie puścić go ścieżką zapisu). Rozpoznajemy to dokładnie tak samo jak w /intent
+  // (resolveIntent) i kierujemy tymi samymi ścieżkami, zamiast zakładać, że każda wypowiedź tutaj
+  // to opis sprawy do przekazania Wiktorii.
   const otherIntent = await resolveIntent(speech);
+
+  if (otherIntent === "ZAPIS") {
+    await respondWithBookingQuickLink(twiml, { speech, from, to, callSid });
+    return res.type("text/xml").send(twiml.toString());
+  }
+
+  if (otherIntent === "SPOZNIENIE") {
+    addSpeechGather(
+      twiml,
+      `${process.env.BASE_URL}/voice/collect-late?attempt=0`,
+      LATE_PROMPT
+    );
+    finishCall(twiml, "Nie usłyszałem, do którego salonu jesteś umówiony.");
+    return res.type("text/xml").send(twiml.toString());
+  }
+
+  if (otherIntent === "WSPOLPRACA") {
+    addSpeechGather(twiml, `${process.env.BASE_URL}/voice/collect-cooperation?attempt=0`, COOPERATION_PROMPT);
+    finishCall(twiml, "Nie usłyszałem, czego miałaby dotyczyć współpraca.");
+    return res.type("text/xml").send(twiml.toString());
+  }
+
   if (otherIntent === "PYTANIE") {
     await respondWithFaqAnswer(twiml, speech, 1);
     return res.type("text/xml").send(twiml.toString());
