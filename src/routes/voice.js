@@ -914,6 +914,18 @@ router.post("/collect-other", async (req, res) => {
   // opisu sprawy (np. reklamacji), a nie jako prośba o przełączenie. Zbieranie tematu przez tę
   // ścieżkę i tak prowadzi do oddzwonienia, więc efekt dla klienta jest zbliżony.
 
+  // Od Krzysztofa, 01.10.2026: zapytany "o co chodzi" po "mam inną sprawę", klient czasem po
+  // prostu zadaje zwykłe pytanie (np. o lokalizację/godziny/cennik) zamiast opisywać zgłoszenie —
+  // a to lądowało tu jako "treść sprawy" i dostawało w odpowiedzi "czy mam przekazać to
+  // Wiktorii?", zamiast normalnej odpowiedzi. Rozpoznajemy to dokładnie tak samo jak w /intent
+  // i /faq (resolveIntent) — i jeśli to faktycznie PYTANIE, odpowiadamy na nie od razu, zamiast
+  // zakładać, że każda wypowiedź tutaj to opis sprawy do przekazania.
+  const otherIntent = await resolveIntent(speech);
+  if (otherIntent === "PYTANIE") {
+    await respondWithFaqAnswer(twiml, speech, 1);
+    return res.type("text/xml").send(twiml.toString());
+  }
+
   // Klient opisujący sprawę (zwłaszcza odwołanie/zmianę wizyty) często sam podaje przy okazji
   // nazwę salonu — jeśli ją jednoznacznie złapaliśmy, powtarzamy w pytaniu o potwierdzenie, żeby
   // można się było poprawić, zanim zgłoszenie pójdzie do Wiktorii. Od Damiana, 17.09.2026: "może
